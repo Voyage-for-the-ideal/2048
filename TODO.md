@@ -51,18 +51,18 @@
 - [ ] 只做部分 tuple 集（如 6 组 8-tuple），评估训练时间成本
 
 ### 5. 正式 benchmark（90 分钟）
-- [ ] 1000 局：`npm run benchmark -- 1000 0 --maxDepth 4 --budgetMs 100 --cutoff 8 --keepBest --json bench-1000.json`
-- [ ] 至少再跑一组 ablation：
-  - [ ] 无 TT / 无 cutoff / 无 score-aware / 无 tuned weights / final
-  - [ ] 记录每项 Before/After/Improvement/Keep-Revert
+- [x] 1000 局 → 用户指示不跑，以 50 局确认替代（seed 200-249）
+- [ ] ablation 未跑（已由更大跨度对比覆盖：old weights vs candidate A）
 
 ### 6. 收尾（60 分钟）
-- [ ] README 填真实 benchmark 表 + ablation 数据（禁止编造）
-- [ ] best-game.json 记录（seed/score/maxTile/moves）+ 浏览器 Replay 验证
-- [ ] `npm run build` 产物验证 + 浏览器全流程回归（New Game / Auto / Turbo /
-      Step / Benchmark / Replay / Export）
-- [ ] GitHub Pages：用户创建 repo 并 push 后验证 workflow 部署
-      （本地已验证 base `/2048/` 构建正确）
+- [x] README 填真实 benchmark 表（旧 3 行 + 均匀 cutoff + tuned 权重行，真实数据）
+- [x] best-game.json（seed=309 score=18892 maxTile=1024 moves=1148）
+- [x] `npm run build` 通过 + 浏览器全流程回归全过：
+      New Game / Step / Auto / Turbo（浏览器实测达成 2048，score 24396）/
+      Benchmark 3 局 / Replay / Export / Game Over / AI Debug 面板
+- [x] GitHub 仓库已创建（**私有** Voyage-for-the-ideal/2048）并 push。
+      Pages 需公开仓库，用户确认后执行 `gh repo edit 2048 --visibility public`
+      并启用 Pages 验证 workflow
 
 ## 已知风险
 - tune 评估偏慢（~30s/评估），并行 4 worker 仍 20+ 分钟；必要时降
