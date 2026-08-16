@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>2048 AI — Expectimax Auto-Player</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>2048 <span class="sub">AI</span></h1>
+        <div class="scores">
+          <div class="score-box"><div class="label">SCORE</div><div id="score" class="value">0</div></div>
+          <div class="score-box"><div class="label">BEST</div><div id="best" class="value">0</div></div>
+          <div class="score-box"><div class="label">MAX TILE</div><div id="max-tile" class="value">2</div></div>
+        </div>
+      </header>
+
+      <div class="board-wrap">
+        <div id="board" class="board">
+          <!-- 16 cells rendered by JS -->
+        </div>
+        <div id="game-over" class="overlay hidden">
+          <div class="overlay-box">
+            <h2>Game Over</h2>
+            <button id="btn-new-game-2" class="btn primary">New Game</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="row">
+          <button id="btn-new-game" class="btn primary">New Game</button>
+          <button id="btn-auto" class="btn">Auto Play</button>
+          <button id="btn-pause" class="btn" disabled>Pause</button>
+          <button id="btn-step" class="btn">Step</button>
+          <button id="btn-turbo" class="btn">Turbo</button>
+        </div>
+        <div class="row">
+          <label>Speed
+            <input id="speed" type="range" min="1" max="60" value="8" />
+            <span id="speed-label">8 moves/s</span>
+          </label>
+          <label>Depth
+            <select id="depth">
+              <option value="3">3</option>
+              <option value="4" selected>4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+            </select>
+          </label>
+          <label>Budget
+            <select id="budget">
+              <option value="20">20 ms</option>
+              <option value="40" selected>40 ms</option>
+              <option value="100">100 ms</option>
+              <option value="200">200 ms</option>
+            </select>
+          </label>
+          <label>Objective
+            <select id="objective">
+              <option value="MAX_SCORE" selected>Max Score</option>
+              <option value="MAX_TILE">Max Tile</option>
+            </select>
+          </label>
+          <label>Cutoff
+            <select id="cutoff">
+              <option value="0">exact</option>
+              <option value="8" selected>8 cells</option>
+              <option value="6">6 cells</option>
+              <option value="4">4 cells</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div class="ai-panel">
+        <h3>AI Debug</h3>
+        <div class="ai-stats">
+          <span>move: <b id="ai-move">-</b></span>
+          <span>depth: <b id="ai-depth">-</b></span>
+          <span>nodes: <b id="ai-nodes">-</b></span>
+          <span>time: <b id="ai-time">-</b> ms</span>
+          <span>TT hit: <b id="ai-tt">-</b></span>
+        </div>
+        <div id="move-evals" class="move-evals">
+          <div class="bar" id="bar-0"><span>UP</span><b></b></div>
+          <div class="bar" id="bar-1"><span>DOWN</span><b></b></div>
+          <div class="bar" id="bar-2"><span>LEFT</span><b></b></div>
+          <div class="bar" id="bar-3"><span>RIGHT</span><b></b></div>
+        </div>
+      </div>
+
+      <div class="bench-panel">
+        <h3>Benchmark</h3>
+        <div class="row">
+          <label>Games
+            <input id="bench-games" type="number" value="100" min="1" max="10000" />
+          </label>
+          <label>Seed start
+            <input id="bench-seed" type="number" value="0" />
+          </label>
+          <button id="btn-bench" class="btn">Run Benchmark</button>
+          <button id="btn-bench-cancel" class="btn" disabled>Cancel</button>
+          <button id="btn-replay" class="btn" disabled>Replay Best</button>
+          <button id="btn-export" class="btn" disabled>Export JSON</button>
+        </div>
+        <div id="bench-progress" class="bench-progress"></div>
+        <pre id="bench-output" class="bench-output"></pre>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
