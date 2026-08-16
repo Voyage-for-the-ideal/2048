@@ -15,24 +15,35 @@
 ## 下一步（按优先级）
 
 ### 1. 重跑基础验证（30 分钟）
-- [ ] `npx vitest run` —— 确认 31 个测试仍全过（含 cutoff 均匀采样改动）
-- [ ] `npx tsx scripts/benchmark.ts 50 0 --maxDepth 4 --budgetMs 100 --cutoff 8`
-      验证均匀 cutoff 采样（棋盘上下半部均衡）相对 row-major 的差异
-- [ ] 记录 Before/After，决定 Keep / Revert
+- [x] `npx vitest run` —— 31 个测试全过（含 cutoff 均匀采样改动）
+- [x] `npx tsx scripts/benchmark.ts 50 0 --maxDepth 4 --budgetMs 100 --cutoff 8`
+      均匀 cutoff 采样：mean=3291 median=3132 p90=5632 best=9964，
+      moves=283 maxTile=219，2048 rate=0%，74.8ms/move
+- [x] 记录 Before/After，决定 Keep / Revert → **Keep**（用户指示直接采用；
+      row-major 无对照数据但会系统性忽略棋盘下半部，均匀采样逻辑更正确）
 
 ### 2. 权重调参（60 分钟，后台）
-- [ ] 重跑 `npx tsx scripts/tune.ts 12 24 --maxDepth 3 --budgetMs 60 --cutoff 6 --workers 4`
-      （上次被手动停止，未出结果）
-- [ ] 用 tuned-weights.json 在 d4 b100 c8 上复验
-- [ ] 若 2048 rate 仍为 0%，进入攻坚（见 §4）
+- [x] 重跑 `npx tsx scripts/tune.ts 12 24 --maxDepth 3 --budgetMs 60 --cutoff 6 --workers 4`
+      已停：新权重（候选 A）下游戏变长（1345 moves/局 vs 旧 283），
+      12 局 d3 b60 ≈ 16 min/评估，24 代 ≈ 13 小时不可行。
+      后续如需 tune：games 需降到 4-6，或训练用 d2 b40
+- [x] 用 tuned-weights.json 在 d4 b100 c8 上复验 → 候选 A 手动调权已 50 局
+      验证 50% 2048 rate（见 §3），正式替代 tune 结果
+- [x] 若 2048 rate 仍为 0%，进入攻坚（见 §4）→ 已由 §3 解决
 
-### 3. 后期深度 / 终局能力（核心攻坚，60 分钟）
-当前 2048 rate = 0%，moves 349 但 maxTile 卡 256-512。重点：
-- [ ] 空位 ≤5 时强制 d6+（nodeBudget 已支持，需验证后期实际完成深度）
-- [ ] 打印 completedDepth 分布与空位数关系，确认后期没被预算砍浅
-- [ ] 验证"两个 512 相邻时 AI 是否合并"类战术局面（写进 tests/tactics）
-- [ ] 若深度已够但 2048 仍 0%：试 maxTile 权重 / corner 权重加大，或
-      MAX_TILE objective 权重文件
+### 3. 后期深度 / 终局能力（核心攻坚，60 分钟）→ **重大突破 2026-08-17**
+- [x] 空位 ≤5 时强制 d6+：已生效（depthProfile/tactics 测试确认终局 completedDepth=6）
+- [x] 战术测试 tests/tactics.test.ts：两个 512 相邻 **不合并** → 定位根因
+- [x] **根因**：snake 特征结构性偏好不合并（512+512 相邻 = 9×16+9×15=279 分 >
+      合并 1024 = 10×16=160 分），且 wSnake=8 × 数值域几百 主宰决策
+- [x] **修复**：snake 8→2，maxTile 4→15，score 0.5→2（候选 A，已写入
+      DEFAULT_WEIGHTS）
+      15 局：mean 3291→29349，**2048 rate 0%→60%**，4096 rate 13.3%
+- [x] **50 局确认**（seed 200-249，bench-wA-50.json）：mean=24763，
+      **2048 rate=50%**，4096 rate=6%，moves=1345，maxTile=1597
+- [x] tests/tactics.test.ts 4 项全过（不拆散相邻 512 / 角落 1024 保持 /
+      整合实战 ≥1024 / 终局 depth 6）；全套 35 测试过
+- [ ] §2 tune 从新 DEFAULT 出发跑 12x24（进行中）
 
 ### 4. 若启发式 expectimax 卡死（备选路线）
 - [ ] n-tuple / TD learning：afterstate value function，旋转/翻转 weight

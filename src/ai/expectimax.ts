@@ -145,7 +145,17 @@ export class Expectimax {
     // Copy the empty-cell list: recursive calls reuse the shared EMPTY_CELLS.
     const cutoff = this.cfg.chanceCutoff;
     const keep = cutoff > 0 && k > cutoff ? cutoff : k;
-    const empties = EMPTY_CELLS.slice(0, keep);
+    let empties: number[];
+    if (keep < k) {
+      // Uniformly sample the empty cells instead of taking the first K in
+      // row-major order (which would systematically ignore the lower half
+      // of the board).
+      empties = new Array<number>(keep);
+      const step = k / keep;
+      for (let j = 0; j < keep; j++) empties[j] = EMPTY_CELLS[Math.min(k - 1, Math.floor(j * step))];
+    } else {
+      empties = EMPTY_CELLS.slice(0, keep);
+    }
     const inv2 = 0.9 / keep;
     const inv4 = 0.1 / keep;
     const mark = this.pool.mark();

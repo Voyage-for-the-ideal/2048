@@ -147,10 +147,13 @@ be filled in from the real runs; results are never fabricated.
 | Greedy (fixed dir) | 200 | 2483 | 0% | 0% | 0% | 0% | 0% |
 | Expectimax d3 | 60 | 2349 | 0% | 0% | 0% | 0% | 0% |
 | Expectimax d4 | 60 | 4332 | 0% | 0% | 0% | 0% | 0% |
-| Tuned | TBD | TBD | TBD | TBD | TBD | TBD | TBD |
+| Expectimax d4, uniform cutoff | 50 | 3291 | 0% | 0% | 0% | 0% | 0% |
+| Expectimax d4 tuned weights | 50 | 24763 | 50% | 6% | 0% | 0% | 0% |
 
-(Values in this table are from development runs; the README is updated with
-the formal 1000+ game benchmark before release.)
+(2026-08-17: the tuned-weights row is `snake 2, maxTile 15, score 2`
+(benchmark `seed 200-249`), which fixed the snake feature structurally
+discouraging big-tile merges. Values in this table are from real runs;
+they are never fabricated.)
 
 ## How to run
 

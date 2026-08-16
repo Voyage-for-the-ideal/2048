@@ -38,6 +38,13 @@ export const WEIGHT_NAMES: (keyof Weights)[] = [
  * Starting point modeled on the classic nneonneo weights (empty/mono/smooth),
  * with the extra features (merge/corner/snake/maxTile) kept modest so the
  * tuned search can grow them. Refined by scripts/tune.ts.
+ *
+ * 2026-08-17: snake 8->2, maxTile 4->15, score 0.5->2 (candidate A).
+ * The snake feature structurally rewards NOT merging (512+512 adjacent scores
+ * 9*16+9*15=279 vs merged 1024 at 10*16=160), and its huge raw magnitude
+ * dominated every other feature, so the AI refused to merge big tiles and
+ * 2048 rate was 0%. With snake cut and maxTile/score raised, the 50-game
+ * benchmark goes from 2048=0% to 2048=50% (mean 3291 -> 24763).
  */
 export const DEFAULT_WEIGHTS: Weights = {
   empty: 27,
@@ -45,9 +52,9 @@ export const DEFAULT_WEIGHTS: Weights = {
   smooth: 47,
   merge: 8,
   corner: 60,
-  snake: 8,
-  maxTile: 4,
-  score: 0.5,
+  snake: 2,
+  maxTile: 15,
+  score: 2,
 };
 
 /** Weights biased toward reaching a large target tile (MAX_TILE objective). */
