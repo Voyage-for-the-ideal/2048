@@ -77,7 +77,7 @@ for (const [e, ds] of Object.entries(depthHist).sort((a, b) => Number(a[0]) - Nu
   console.log(`  empties=${e.padStart(2)}: avgDepth=${avg.toFixed(2)} n=${ds.length} dist={${Object.entries(ds.reduce<Record<string, number>>((m, x) => ((m[x] = (m[x] ?? 0) + 1), m), {})).map(([d, n]) => `d${d}:${n}`).join(",")}}`);
 }
 
-console.log(`\n=== endgame (empties<=5): ${lateDecisions}/${totalDecisions} decisions ===");
+console.log(`\n=== endgame (empties<=5): ${lateDecisions}/${totalDecisions} decisions === `);
 for (const [d, n] of Object.entries(lateHist).sort((a, b) => Number(a[0]) - Number(b[0]))) {
   console.log(`  depth ${d}: ${n}`);
 }

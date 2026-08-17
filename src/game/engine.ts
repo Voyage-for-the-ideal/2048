@@ -107,16 +107,18 @@ export function emptyCells(b: Board, out: number[]): number {
 /**
  * Add a random tile (90% 2, 10% 4) to a uniformly random empty cell.
  * `rng` is a function returning a float in [0, 1).
+ * Returns the index (0..15) of the spawned cell, or -1 when the board is full.
  */
-export function addRandomTile(b: Board, rng: RNG): void {
+export function addRandomTile(b: Board, rng: RNG): number {
   const empties: number[] = [];
   const n = emptyCells(b, empties);
-  if (n === 0) return;
+  if (n === 0) return -1;
   const idx = empties[Math.floor(rng() * n)];
   const r = idx >> 2;
   const c = idx & 3;
   const v = rng() < 0.9 ? 1 : 2;
   b[r] = (b[r] & ~(15 << (c * 4))) | (v << (c * 4));
+  return idx;
 }
 
 /** Initial board for a new game: two random tiles. */

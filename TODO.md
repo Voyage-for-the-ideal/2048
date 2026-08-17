@@ -43,16 +43,19 @@
       **2048 rate=50%**，4096 rate=6%，moves=1345，maxTile=1597
 - [x] tests/tactics.test.ts 4 项全过（不拆散相邻 512 / 角落 1024 保持 /
       整合实战 ≥1024 / 终局 depth 6）；全套 35 测试过
-- [ ] §2 tune 从新 DEFAULT 出发跑 12x24（进行中）
+- [x] §2 tune 从新 DEFAULT 出发跑 12x24 —— **已关闭**：d3 b60 下 12 局 ≈ 16
+      分钟/评估，24 代 ≈ 13 小时不可行；改为手动调权（候选 A）并用 50 局
+      验证替代，见 README「How to tune」
 
-### 4. 若启发式 expectimax 卡死（备选路线）
-- [ ] n-tuple / TD learning：afterstate value function，旋转/翻转 weight
-      sharing，self-play 训练；与 heuristic 用同一 seed 集合对比
+### 4. 若启发式 expectimax 卡死（备选路线）→ **暂不启用**
+- [x] n-tuple / TD learning 备选路线保持不开：当前启发式 2048 rate 50%、
+      4096 6%，未触发卡死条件。若后续冲击 8192+ 再启用
 - [ ] 只做部分 tuple 集（如 6 组 8-tuple），评估训练时间成本
 
 ### 5. 正式 benchmark（90 分钟）
 - [x] 1000 局 → 用户指示不跑，以 50 局确认替代（seed 200-249）
-- [ ] ablation 未跑（已由更大跨度对比覆盖：old weights vs candidate A）
+- [x] ablation（2026-08-18 跑，15 局/组 seed 200-214，d4 b100 c8，结果见
+      README「Ablation」表）：baseline vs 去 snake / 去 score / 去 mono
 
 ### 6. 收尾（60 分钟）
 - [x] README 填真实 benchmark 表（旧 3 行 + 均匀 cutoff + tuned 权重行，真实数据）
@@ -61,8 +64,10 @@
       New Game / Step / Auto / Turbo（浏览器实测达成 2048，score 24396）/
       Benchmark 3 局 / Replay / Export / Game Over / AI Debug 面板
 - [x] GitHub 仓库已创建（**私有** Voyage-for-the-ideal/2048）并 push。
-      Pages 需公开仓库，用户确认后执行 `gh repo edit 2048 --visibility public`
-      并启用 Pages 验证 workflow
+- [x] 2026-08-18：仓库公开 + Pages 启用 + workflow 部署验证（见 README Demo）
+- [x] 2026-08-18：滑块滑动动画（tile 层 transform 过渡 + 合并 pop + 出生
+      动画）+ 5 套配色主题（classic/dark/ocean/sunset/forest）+ 自定义
+      颜色面板（localStorage 持久化）
 
 ## 已知风险
 - tune 评估偏慢（~30s/评估），并行 4 worker 仍 20+ 分钟；必要时降

@@ -11,9 +11,23 @@
       <header>
         <h1>2048 <span class="sub">AI</span></h1>
         <div class="scores">
-          <div class="score-box"><div class="label">SCORE</div><div id="score" class="value">0</div></div>
-          <div class="score-box"><div class="label">BEST</div><div id="best" class="value">0</div></div>
-          <div class="score-box"><div class="label">MAX TILE</div><div id="max-tile" class="value">2</div></div>
+          <div class="score-box"><div class="label" data-i18n="score">SCORE</div><div id="score" class="value">0</div></div>
+          <div class="score-box"><div class="label" data-i18n="best">BEST</div><div id="best" class="value">0</div></div>
+          <div class="score-box"><div class="label" data-i18n="maxTile">MAX TILE</div><div id="max-tile" class="value">2</div></div>
+        </div>
+        <div class="header-controls">
+          <label class="theme"><select id="theme">
+            <option value="classic" data-i18n="themeClassic">Classic</option>
+            <option value="dark" data-i18n="themeDark">Dark</option>
+            <option value="ocean" data-i18n="themeOcean">Ocean</option>
+            <option value="sunset" data-i18n="themeSunset">Sunset</option>
+            <option value="forest" data-i18n="themeForest">Forest</option>
+            <option value="custom" data-i18n="themeCustom">Custom…</option>
+          </select></label>
+          <label class="lang"><select id="lang">
+            <option value="en">English</option>
+            <option value="zh">中文</option>
+          </select></label>
         </div>
       </header>
 
@@ -23,26 +37,26 @@
         </div>
         <div id="game-over" class="overlay hidden">
           <div class="overlay-box">
-            <h2>Game Over</h2>
-            <button id="btn-new-game-2" class="btn primary">New Game</button>
+            <h2 data-i18n="gameOver">Game Over</h2>
+            <button id="btn-new-game-2" class="btn primary" data-i18n="newGame">New Game</button>
           </div>
         </div>
       </div>
 
       <div class="controls">
         <div class="row">
-          <button id="btn-new-game" class="btn primary">New Game</button>
-          <button id="btn-auto" class="btn">Auto Play</button>
-          <button id="btn-pause" class="btn" disabled>Pause</button>
-          <button id="btn-step" class="btn">Step</button>
-          <button id="btn-turbo" class="btn">Turbo</button>
+          <button id="btn-new-game" class="btn primary" data-i18n="newGame">New Game</button>
+          <button id="btn-auto" class="btn" data-i18n="autoPlay">Auto Play</button>
+          <button id="btn-pause" class="btn" disabled data-i18n="pause">Pause</button>
+          <button id="btn-step" class="btn" data-i18n="step">Step</button>
+          <button id="btn-turbo" class="btn" data-i18n="turbo">Turbo</button>
         </div>
         <div class="row">
-          <label>Speed
+          <label><span data-i18n="speed">Speed</span>
             <input id="speed" type="range" min="1" max="60" value="8" />
             <span id="speed-label">8 moves/s</span>
           </label>
-          <label>Depth
+          <label><span data-i18n="depth">Depth</span>
             <select id="depth">
               <option value="3">3</option>
               <option value="4" selected>4</option>
@@ -50,61 +64,66 @@
               <option value="6">6</option>
             </select>
           </label>
-          <label>Budget
+          <label><span data-i18n="budget">Budget</span>
             <select id="budget">
-              <option value="20">20 ms</option>
-              <option value="40" selected>40 ms</option>
-              <option value="100">100 ms</option>
-              <option value="200">200 ms</option>
+              <option value="20" data-i18n="budget20">20 ms</option>
+              <option value="40" selected data-i18n="budget40">40 ms</option>
+              <option value="100" data-i18n="budget100">100 ms</option>
+              <option value="200" data-i18n="budget200">200 ms</option>
             </select>
           </label>
-          <label>Objective
+          <label><span data-i18n="objective">Objective</span>
             <select id="objective">
-              <option value="MAX_SCORE" selected>Max Score</option>
-              <option value="MAX_TILE">Max Tile</option>
+              <option value="MAX_SCORE" selected data-i18n="maxScore">Max Score</option>
+              <option value="MAX_TILE" data-i18n="maxTileObjective">Max Tile</option>
             </select>
           </label>
-          <label>Cutoff
+          <label><span data-i18n="cutoff">Cutoff</span>
             <select id="cutoff">
-              <option value="0">exact</option>
-              <option value="8" selected>8 cells</option>
-              <option value="6">6 cells</option>
-              <option value="4">4 cells</option>
+              <option value="0" data-i18n="exact">exact</option>
+              <option value="8" selected data-i18n="cutoff8">8 cells</option>
+              <option value="6" data-i18n="cutoff6">6 cells</option>
+              <option value="4" data-i18n="cutoff4">4 cells</option>
             </select>
           </label>
         </div>
       </div>
 
+      <details id="custom-colors" class="custom-colors">
+        <summary data-i18n="customColors">Custom colors</summary>
+        <div id="color-grid" class="color-grid"><!-- color inputs built by JS --></div>
+      </details>
+
       <div class="ai-panel">
-        <h3>AI Debug</h3>
+        <h3 data-i18n="aiDebug">AI Debug</h3>
         <div class="ai-stats">
-          <span>move: <b id="ai-move">-</b></span>
-          <span>depth: <b id="ai-depth">-</b></span>
-          <span>nodes: <b id="ai-nodes">-</b></span>
-          <span>time: <b id="ai-time">-</b> ms</span>
-          <span>TT hit: <b id="ai-tt">-</b></span>
+          <span><span data-i18n="move">move</span>: <b id="ai-move">-</b></span>
+          <span><span data-i18n="depthStat">depth</span>: <b id="ai-depth">-</b></span>
+          <span><span data-i18n="nodes">nodes</span>: <b id="ai-nodes">-</b></span>
+          <span><span data-i18n="time">time</span>: <b id="ai-time">-</b> ms</span>
+          <span><span data-i18n="ttHit">TT hit</span>: <b id="ai-tt">-</b></span>
         </div>
         <div id="move-evals" class="move-evals">
-          <div class="bar" id="bar-0"><span>UP</span><b></b></div>
-          <div class="bar" id="bar-1"><span>DOWN</span><b></b></div>
-          <div class="bar" id="bar-2"><span>LEFT</span><b></b></div>
-          <div class="bar" id="bar-3"><span>RIGHT</span><b></b></div>
+          <div class="bar" id="bar-0"><span data-i18n="up">UP</span><b></b></div>
+          <div class="bar" id="bar-1"><span data-i18n="down">DOWN</span><b></b></div>
+          <div class="bar" id="bar-2"><span data-i18n="left">LEFT</span><b></b></div>
+          <div class="bar" id="bar-3"><span data-i18n="right">RIGHT</span><b></b></div>
         </div>
       </div>
 
       <div class="bench-panel">
-        <h3>Benchmark</h3>
+        <h3 data-i18n="benchmark">Benchmark</h3>
         <div class="row">
-          <label>Games
+          <label><span data-i18n="games">Games</span>
             <input id="bench-games" type="number" value="100" min="1" max="10000" />
           </label>
-          <label>Seed start
+          <label><span data-i18n="seedStart">Seed start</span>
             <input id="bench-seed" type="number" value="0" />
           </label>
-          <button id="btn-bench" class="btn">Run Benchmark</button>
-          <button id="btn-bench-cancel" class="btn" disabled>Cancel</button>
-          <button id="btn-replay" class="btn" disabled>Replay Best</button>
-          <button id="btn-export" class="btn" disabled>Export JSON</button>
+          <button id="btn-bench" class="btn" data-i18n="runBenchmark">Run Benchmark</button>
+          <button id="btn-bench-cancel" class="btn" disabled data-i18n="cancel">Cancel</button>
+          <button id="btn-replay" class="btn" disabled data-i18n="replayBest">Replay Best</button>
+          <button id="btn-export" class="btn" disabled data-i18n="exportJson">Export JSON</button>
         </div>
         <div id="bench-progress" class="bench-progress"></div>
         <pre id="bench-output" class="bench-output"></pre>

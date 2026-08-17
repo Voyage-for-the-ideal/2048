@@ -1,11 +1,18 @@
 /**
  * Main thread: rendering, controls, animation, statistics.
  * The AI search itself runs in a Web Worker.
+ *
+ * Board rendering uses a tile layer: 16 absolutely-positioned `.tile`
+ * elements slide between grid coordinates via CSS transform transitions.
+ * Each move is animated in two phases — tiles are first placed at their
+ * OLD positions (transitions off), then moved to their NEW positions
+ * (transitions on); merged tiles pop, the swallowed partner fades out,
+ * and the random tile spawns with a birth animation once the slide ends.
  */
-import { newBoard, setCell, cellValue, boardToString, maxTileLog } from "./game/board";
-import { DIR_NAMES } from "./ai/expectimax";
+import { cellValue, maxTileLog } from "./game/board";
 import { applyMove, addRandomTile, newGameBoard, legalMask } from "./game/engine";
 import { mulberry32 } from "./game/rng";
+import { t, dirName, initI18n } from "./i18n";
 import type { AIOptions } from "./ai/ai";
 import type { Summary } from "./benchmark/stats";
 import { summaryTable } from "./benchmark/stats";
@@ -51,25 +58,255 @@ let bestGame: { seed: number; score: number; maxTile: number; moves: number; mov
 let replaying = false;
 let benchRunning = false;
 
-const cells: HTMLElement[] = [];
-for (let i = 0; i < 16; i++) {
-  const c = document.createElement("div");
-  c.className = "cell";
-  elBoard.appendChild(c);
-  cells.push(c);
+// --- theme handling ---
+const THEME_STORAGE = "theme";
+/** CSS variable names (minus `--`) managed by themes, in panel order. */
+const THEME_KEYS = [
+  "bg", "board-bg", "cell-empty", "t2", "t4", "t8", "t16", "t32", "t64",
+  "t128", "t256", "t512", "t1024", "t2048", "tbig", "t2-text", "t8-text", "accent",
+];
+const THEME_DEFAULTS: Record<string, string> = {
+  "bg": "#faf8ef", "board-bg": "#bbada0", "cell-empty": "#cdc1b4",
+  "t2": "#eee4da", "t4": "#ede0c8", "t8": "#f2b179", "t16": "#f59563", "t32": "#f67c5f",
+  "t64": "#f65e3b", "t128": "#edcf72", "t256": "#edcc61", "t512": "#edc850",
+  "t1024": "#edc53f", "t2048": "#edc22e", "tbig": "#3c3a32",
+  "t2-text": "#776e65", "t8-text": "#f9f6f2", "accent": "#f2b179",
+};
+/** [cssVarName, i18nKey] pairs for the custom-color panel. */
+const CUSTOM_ITEMS: Array<[string, string]> = [
+  ["bg", "colorBg"], ["board-bg", "colorBoard"], ["cell-empty", "colorEmpty"],
+  ["t2", "tile2"], ["t4", "tile4"], ["t8", "tile8"], ["t16", "tile16"], ["t32", "tile32"],
+  ["t64", "tile64"], ["t128", "tile128"], ["t256", "tile256"], ["t512", "tile512"],
+  ["t1024", "tile1024"], ["t2048", "tile2048"], ["tbig", "tileBig"],
+  ["t2-text", "colorT2Text"], ["t8-text", "colorT8Text"], ["accent", "colorAccent"],
+];
+
+interface ThemePref { name: string; custom?: Record<string, string>; }
+
+function loadThemePref(): ThemePref {
+  try {
+    const raw = localStorage.getItem(THEME_STORAGE);
+    if (raw) {
+      const p = JSON.parse(raw) as ThemePref;
+      if (p && typeof p.name === "string") return p;
+    }
+  } catch {
+    // localStorage may be unavailable; ignore.
+  }
+  return { name: "classic" };
 }
 
-function render(animate = false): void {
+function saveThemePref(pref: ThemePref): void {
+  try {
+    localStorage.setItem(THEME_STORAGE, JSON.stringify(pref));
+  } catch {
+    // localStorage may be unavailable (e.g. private mode); ignore.
+  }
+}
+
+/** Apply a theme: preset via data-theme, custom via inline CSS variables. */
+function applyTheme(pref: ThemePref): void {
+  const root = document.documentElement;
+  root.dataset.theme = pref.name === "custom" ? "classic" : pref.name;
+  for (const key of THEME_KEYS) root.style.removeProperty(`--${key}`);
+  if (pref.name === "custom" && pref.custom) {
+    for (const key of THEME_KEYS) {
+      const v = pref.custom[key];
+      if (v) root.style.setProperty(`--${key}`, v);
+    }
+  }
+}
+
+function buildCustomPanel(): void {
+  const grid = $("color-grid");
+  for (const [key, labelKey] of CUSTOM_ITEMS) {
+    const label = document.createElement("label");
+    const text = document.createElement("span");
+    text.dataset.i18n = labelKey;
+    const input = document.createElement("input");
+    input.type = "color";
+    input.dataset.key = key;
+    input.addEventListener("input", () => {
+      const pref = loadThemePref();
+      if (pref.name !== "custom") {
+        pref.name = "custom";
+        ($("theme") as HTMLSelectElement).value = "custom";
+        ($("custom-colors") as HTMLDetailsElement).open = true;
+      }
+      pref.custom = { ...(pref.custom ?? THEME_DEFAULTS), [key]: input.value };
+      saveThemePref(pref);
+      applyTheme(pref);
+    });
+    label.append(text, input);
+    grid.appendChild(label);
+  }
+}
+
+function syncCustomPanel(pref: ThemePref): void {
+  const base = pref.custom ?? THEME_DEFAULTS;
+  for (const input of document.querySelectorAll<HTMLInputElement>("#color-grid input")) {
+    const key = input.dataset.key!;
+    input.value = base[key] ?? THEME_DEFAULTS[key];
+  }
+}
+
+// --- board rendering (tile layer) ---
+const tileLayer = document.createElement("div");
+tileLayer.className = "tile-layer";
+elBoard.appendChild(tileLayer);
+const tiles: HTMLElement[] = [];
+for (let i = 0; i < 16; i++) {
+  const t = document.createElement("div");
+  t.className = "tile no-anim";
+  const s = document.createElement("span");
+  t.appendChild(s);
+  tileLayer.appendChild(t);
+  tiles.push(t);
+}
+
+function cellLogAt(b: Uint16Array, idx: number): number {
+  return (b[idx >> 2] >>> ((idx & 3) * 4)) & 15;
+}
+
+function placeTile(t: HTMLElement, idx: number): void {
+  t.style.setProperty("--col", String(idx & 3));
+  t.style.setProperty("--row", String(idx >> 2));
+}
+
+function tileClasses(v: number): string {
+  return v === 0 ? "" : ` t-${v >= 4096 ? "big" : v}`;
+}
+
+/** Static full render of the tile layer (no sliding). */
+function renderBoard(b: Uint16Array, bornIdx = -1): void {
+  let k = 0;
   for (let i = 0; i < 16; i++) {
-    const v = cellValue((board[i >> 2] >>> ((i & 3) * 4)) & 15);
-    const c = cells[i];
-    c.textContent = v > 0 ? String(v) : "";
-    c.className = "cell" + (v === 0 ? "" : ` t-${v >= 4096 ? "big" : v}`);
-    if (animate && v > 0) c.style.transform = "scale(1.06)";
+    const v = cellValue(cellLogAt(b, i));
+    if (v === 0) continue;
+    const t = tiles[k++];
+    t.style.opacity = "";
+    placeTile(t, i);
+    t.querySelector("span")!.textContent = String(v);
+    // no-anim: positions snap instantly; the birth animation lives on the
+    // inner span (scale), not on this tile's transform.
+    t.className = "tile no-anim" + tileClasses(v) + (i === bornIdx ? " born" : "");
   }
-  if (animate) {
-    setTimeout(() => cells.forEach((c) => (c.style.transform = "")), 90);
+  for (; k < 16; k++) {
+    tiles[k].style.opacity = "";
+    tiles[k].querySelector("span")!.textContent = "";
+    tiles[k].className = "tile no-anim";
   }
+}
+
+/**
+ * Which old cell does each new cell slide from, under the engine's move
+ * semantics (tiles in each row/column slide toward the movement direction)?
+ * A merged tile keeps the source closest to the movement direction; the
+ * swallowed partner disappears (fade-out is handled by the caller).
+ * dir: 0=up, 1=down, 2=left, 3=right.
+ */
+function computeSlideMap(oldB: Uint16Array, newB: Uint16Array, dir: number): { map: Map<number, number>; merged: Set<number> } {
+  const map = new Map<number, number>();
+  const merged = new Set<number>();
+  for (let line = 0; line < 4; line++) {
+    const oldCells: Array<[number, number]> = [];
+    const newCells: Array<[number, number]> = [];
+    for (let step = 0; step < 4; step++) {
+      let idx: number;
+      if (dir === 0) idx = step * 4 + line;            // up: rows top-down
+      else if (dir === 1) idx = (3 - step) * 4 + line; // down: rows bottom-up
+      else if (dir === 2) idx = line * 4 + step;       // left: cols left-right
+      else idx = line * 4 + (3 - step);                // right: cols right-left
+      const ov = cellLogAt(oldB, idx);
+      if (ov > 0) oldCells.push([idx, ov]);
+      const nv = cellLogAt(newB, idx);
+      if (nv > 0) newCells.push([idx, nv]);
+    }
+    let i = 0;
+    for (const [nIdx, nVal] of newCells) {
+      if (i < oldCells.length) {
+        const [oIdx, oVal] = oldCells[i];
+        if (oVal === nVal) { map.set(nIdx, oIdx); i++; continue; }
+        if (oVal === nVal - 1) { map.set(nIdx, oIdx); merged.add(nIdx); i += 2; continue; }
+      }
+      map.set(nIdx, nIdx); // unreachable under engine semantics; stay in place
+    }
+  }
+  return { map, merged };
+}
+
+let animTimer: number | null = null;
+
+/**
+ * Animate the board sliding from `oldB` to `afterB` (the caller must have
+ * assigned `afterB` to `board` already), then run `settle` once the slide
+ * finishes. `animMs` is the slide duration; shorten at high play speeds.
+ */
+function slideAndSettle(oldB: Uint16Array, afterB: Uint16Array, dir: number, animMs: number, settle: () => void): void {
+  if (animTimer !== null) {
+    clearTimeout(animTimer);
+    animTimer = null;
+  }
+  // Match the CSS transform transition duration to this slide, so the
+  // settle (and its snap render) happens exactly when the slide ends.
+  tileLayer.style.setProperty("--anim-ms", `${animMs}ms`);
+  const { map, merged } = computeSlideMap(oldB, afterB, dir);
+
+  // Phase 1: all tiles at their OLD positions, transitions disabled.
+  let k = 0;
+  const byOld = new Map<number, HTMLElement>();
+  for (let i = 0; i < 16; i++) {
+    const v = cellValue(cellLogAt(oldB, i));
+    if (v === 0) continue;
+    const t = tiles[k++];
+    t.style.opacity = "";
+    placeTile(t, i);
+    t.querySelector("span")!.textContent = String(v);
+    t.className = "tile no-anim" + tileClasses(v);
+    byOld.set(i, t);
+  }
+  for (; k < 16; k++) {
+    tiles[k].style.opacity = "";
+    tiles[k].querySelector("span")!.textContent = "";
+    tiles[k].className = "tile no-anim";
+  }
+  void tileLayer.offsetWidth; // force reflow so the new positions animate
+
+  // Phase 2: slide to the NEW positions (transitions now active).
+  const used = new Set<HTMLElement>();
+  for (let i = 0; i < 16; i++) {
+    const v = cellValue(cellLogAt(afterB, i));
+    if (v === 0) continue;
+    const src = map.get(i);
+    const el = src !== undefined ? byOld.get(src) : undefined;
+    if (el === undefined) continue; // random tile spawns in `settle`, not here
+    el.classList.remove("no-anim");
+    placeTile(el, i);
+    el.querySelector("span")!.textContent = String(v);
+    el.className = "tile" + tileClasses(v) + (merged.has(i) ? " pop" : "");
+    used.add(el);
+  }
+  // Tiles swallowed by a merge fade out.
+  for (const [, t] of byOld) {
+    if (!used.has(t)) {
+      t.classList.add("fade");
+      t.style.opacity = "0";
+    }
+  }
+
+  animTimer = window.setTimeout(() => {
+    animTimer = null;
+    settle();
+  }, animMs);
+}
+
+/** Slide duration for a given play speed (moves/s). */
+function animMsFor(speed: number): number {
+  return Math.max(30, Math.min(120, Math.round((1000 / Math.max(1, speed)) * 0.8)));
+}
+
+// --- HUD ---
+function updateHud(): void {
   elScore.textContent = String(score);
   elMaxTile.textContent = String(Math.pow(2, maxTileLog(board)));
   elBest.textContent = String(best);
@@ -78,7 +315,11 @@ function render(animate = false): void {
   if (over) {
     if (score > best) {
       best = score;
-      localStorage.setItem("best", String(best));
+      try {
+        localStorage.setItem("best", String(best));
+      } catch {
+        // ignore
+      }
       elBest.textContent = String(best);
     }
     if (autoPlaying) stopAuto();
@@ -110,18 +351,36 @@ function requestMove(): void {
 
 function applyDecision(move: number): void {
   if (move < 0) return;
+  const old = board.slice();
   const after = new Uint16Array(4);
   const gain = applyMove(board, move, after);
   board.set(after);
   score += gain;
   moves++;
   moveSeq.push(move);
-  addRandomTile(board, gameRng);
-  render(!turbo);
+  if (turbo) {
+    addRandomTile(board, gameRng);
+    renderBoard(board);
+    updateHud();
+    return;
+  }
+  const speed = parseInt(($("speed") as HTMLInputElement).value, 10);
+  const animMs = animMsFor(speed);
+  slideAndSettle(old, after, move, animMs, () => {
+    const born = addRandomTile(board, gameRng);
+    renderBoard(board, born);
+    updateHud();
+    // Chain the next auto-play request only after this move settled, so the
+    // random tile is on the board before the next decision is made.
+    if (autoPlaying) {
+      const stepMs = 1000 / Math.max(1, speed);
+      setTimeout(tick, Math.max(10, Math.round(stepMs - animMs)));
+    }
+  });
 }
 
 function stepOnce(): void {
-  if (legalMask(board) === 0) return;
+  if (legalMask(board) === 0 || animTimer !== null) return;
   requestMove();
 }
 
@@ -136,13 +395,11 @@ function startAuto(): void {
 
 function tick(): void {
   if (!autoPlaying) return;
-  const speed = parseInt(($("speed") as HTMLInputElement).value, 10);
   if (legalMask(board) === 0) {
     stopAuto();
     return;
   }
   requestMove();
-  setTimeout(tick, 1000 / Math.max(1, speed));
 }
 
 function stopAuto(): void {
@@ -164,7 +421,6 @@ function turboLoop(): void {
   if (!autoPlaying || !turbo) return;
   if (legalMask(board) === 0) {
     stopAuto();
-    render();
     return;
   }
   const config = readConfig();
@@ -183,7 +439,7 @@ worker.onmessage = (e: MessageEvent) => {
     const move = msg.move as number;
     const evals = msg.evals as Array<{ move: number; value: number; gain: number }>;
     const stats = msg.stats as { nodes: number; ttHits: number; ttMisses: number; timeMs: number; depth: number };
-    elAiMove.textContent = DIR_NAMES[move];
+    elAiMove.textContent = dirName(move);
     elAiDepth.textContent = String(stats.depth);
     elAiNodes.textContent = String(stats.nodes);
     elAiTime.textContent = stats.timeMs.toFixed(1);
@@ -193,7 +449,7 @@ worker.onmessage = (e: MessageEvent) => {
     applyDecision(move);
     if (turbo && autoPlaying) turboLoop();
   } else if (msg.type === "benchmarkProgress") {
-    elBenchProgress.textContent = `running: ${msg.done}/${msg.total} games (best ${msg.bestScore})`;
+    elBenchProgress.textContent = `${t("running")}: ${msg.done}/${msg.total} ${t("games")} (${t("summaryBest")} ${msg.bestScore})`;
   } else if (msg.type === "benchmarkDone") {
     benchRunning = false;
     ($("btn-bench") as HTMLButtonElement).disabled = false;
@@ -204,12 +460,30 @@ worker.onmessage = (e: MessageEvent) => {
       ($("btn-replay") as HTMLButtonElement).disabled = false;
     }
     ($("btn-export") as HTMLButtonElement).disabled = false;
-    elBenchProgress.textContent = msg.cancelled ? "cancelled" : "done";
-    elBenchOutput.textContent = summaryTable(summary, "benchmark result") + (msg.bestGame ? `\nbest game: seed=${msg.bestGame.seed} score=${msg.bestGame.score} maxTile=${msg.bestGame.maxTile} moves=${msg.bestGame.moves}` : "");
+    elBenchProgress.textContent = msg.cancelled ? t("cancelled") : t("done");
+    elBenchOutput.textContent =
+      summaryTable(summary, t("benchmarkResult"), summaryLabels()) +
+      (msg.bestGame
+        ? `\n${t("bestGame")}: seed=${msg.bestGame.seed} score=${msg.bestGame.score} maxTile=${msg.bestGame.maxTile} moves=${msg.bestGame.moves}`
+        : "");
     (window as unknown as Record<string, unknown>).__benchSummary = summary;
     (window as unknown as Record<string, unknown>).__benchBest = bestGame;
   }
 };
+
+function summaryLabels(): Record<string, string> {
+  return {
+    games: t("summaryGames"),
+    mean: t("summaryMean"),
+    median: t("summaryMedian"),
+    best: t("summaryBest"),
+    meanMoves: t("summaryMeanMoves"),
+    meanMaxTile: t("summaryMeanMaxTile"),
+    speed: t("summarySpeed"),
+    nodesPerMove: t("summaryNodesPerMove"),
+    msPerMove: t("summaryMsPerMove"),
+  };
+}
 
 function renderBars(evals: Array<{ move: number; value: number }>, selected: number): void {
   const vals = [-Infinity, -Infinity, -Infinity, -Infinity];
@@ -222,7 +496,7 @@ function renderBars(evals: Array<{ move: number; value: number }>, selected: num
     const v = vals[d];
     const pct = v === -Infinity ? 0 : ((v - min) / span) * 100;
     bars[d].fill.style.width = `${pct}%`;
-    bars[d].val.textContent = v === -Infinity ? "illegal" : v.toFixed(1);
+    bars[d].val.textContent = v === -Infinity ? t("illegal") : v.toFixed(1);
     bars[d].el.classList.toggle("selected", d === selected);
   }
 }
@@ -246,7 +520,7 @@ function renderBars(evals: Array<{ move: number; value: number }>, selected: num
 ($("btn-bench") as HTMLButtonElement).onclick = () => runBenchmark();
 ($("btn-bench-cancel") as HTMLButtonElement).onclick = () => {
   worker.postMessage({ type: "cancel" } as WorkerRequest);
-  elBenchProgress.textContent = "cancelling...";
+  elBenchProgress.textContent = t("cancelling");
 };
 ($("btn-replay") as HTMLButtonElement).onclick = () => {
   if (bestGame) replayGame(bestGame);
@@ -257,13 +531,18 @@ function newGame(): void {
   autoPlaying = false;
   turbo = false;
   replaying = false;
+  if (animTimer !== null) {
+    clearTimeout(animTimer);
+    animTimer = null;
+  }
   gameSeed = Date.now() >>> 0;
   gameRng = mulberry32(gameSeed);
   board = newGameBoard(gameRng);
   score = 0;
   moves = 0;
   moveSeq = [];
-  render();
+  renderBoard(board);
+  updateHud();
   ($("btn-auto") as HTMLButtonElement).disabled = false;
   ($("btn-pause") as HTMLButtonElement).disabled = true;
 }
@@ -295,39 +574,54 @@ function exportResults(): void {
 // --- replay ---
 function replayGame(game: { seed: number; score: number; maxTile: number; moves: number; moveSeq: number[] }): void {
   if (autoPlaying) stopAuto();
+  if (animTimer !== null) {
+    clearTimeout(animTimer);
+    animTimer = null;
+  }
   replaying = true;
   const rng = mulberry32(game.seed);
   board = newGameBoard(rng);
   score = 0;
   moves = 0;
-  render();
+  renderBoard(board);
+  updateHud();
   let i = 0;
   const speed = parseInt(($("speed") as HTMLInputElement).value, 10);
-  const timer = setInterval(() => {
+  const stepMs = 1000 / Math.max(1, speed);
+  const animMs = animMsFor(speed);
+  const next = (): void => {
     if (i >= game.moveSeq.length) {
-      clearInterval(timer);
       replaying = false;
+      renderBoard(board);
+      updateHud();
       return;
     }
     const d = game.moveSeq[i++];
+    const old = board.slice();
     const after = new Uint16Array(4);
-    score += applyMove(board, d, after);
+    const gain = applyMove(board, d, after);
     board.set(after);
-    addRandomTile(board, rng);
-    render(true);
-    elScore.textContent = String(score);
-  }, 1000 / Math.max(1, speed));
+    score += gain;
+    slideAndSettle(old, after, d, animMs, () => {
+      const born = addRandomTile(board, rng);
+      renderBoard(board, born);
+      updateHud();
+      setTimeout(next, Math.max(10, Math.round(stepMs - animMs)));
+    });
+  };
+  next();
 }
 
 // --- keyboard (manual play) ---
 document.addEventListener("keydown", (e) => {
-  if (replaying || autoPlaying) return;
+  if (replaying || autoPlaying || animTimer !== null) return;
   const map: Record<string, number> = {
     ArrowUp: 0, ArrowDown: 1, ArrowLeft: 2, ArrowRight: 3,
   };
   const d = map[e.key];
   if (d === undefined) return;
   e.preventDefault();
+  const old = board.slice();
   const after = new Uint16Array(4);
   const gain = applyMove(board, d, after);
   if (gain === 0 && after.every((v, i) => v === board[i])) return;
@@ -335,9 +629,40 @@ document.addEventListener("keydown", (e) => {
   score += gain;
   moves++;
   moveSeq.push(d);
-  addRandomTile(board, gameRng);
-  render(true);
+  slideAndSettle(old, after, d, 120, () => {
+    const born = addRandomTile(board, gameRng);
+    renderBoard(board, born);
+    updateHud();
+  });
+});
+
+// --- speed label (dynamic: value + localized unit) ---
+function updateSpeedLabel(): void {
+  const speed = parseInt(($("speed") as HTMLInputElement).value, 10);
+  ($("speed-label") as HTMLElement).textContent = `${speed} ${t("movesPerSec")}`;
+}
+
+($("speed") as HTMLInputElement).addEventListener("input", updateSpeedLabel);
+
+// --- theme controls ---
+const themeSelect = $("theme") as HTMLSelectElement;
+buildCustomPanel();
+const themePref = loadThemePref();
+themeSelect.value = themePref.name;
+applyTheme(themePref);
+syncCustomPanel(themePref);
+themeSelect.addEventListener("change", () => {
+  const pref: ThemePref = { name: themeSelect.value };
+  if (pref.name === "custom") pref.custom = loadThemePref().custom;
+  saveThemePref(pref);
+  applyTheme(pref);
+  syncCustomPanel(pref);
+  ($("custom-colors") as HTMLDetailsElement).open = pref.name === "custom";
 });
 
 // --- init ---
-render();
+initI18n();
+document.getElementById("lang")!.addEventListener("change", updateSpeedLabel);
+updateSpeedLabel();
+renderBoard(board);
+updateHud();

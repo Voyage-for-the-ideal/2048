@@ -67,20 +67,26 @@ export function summarize(
   };
 }
 
-/** One-line text table for terminal output. */
-export function summaryTable(s: Summary, title: string): string {
+/** One-line text table for terminal output. Pass `labels` to localize. */
+export function summaryTable(s: Summary, title: string, labels?: Record<string, string>): string {
+  const L = (key: string, fallback: string): string => labels?.[key] ?? fallback;
   const lines: string[] = [];
   lines.push(`== ${title} ==`);
-  lines.push(`games=${s.games}  mean=${s.meanScore.toFixed(0)}  median=${s.medianScore.toFixed(0)}  p90=${s.p90Score.toFixed(0)}  p99=${s.p99Score.toFixed(0)}  best=${s.bestScore.toFixed(0)}`);
-  lines.push(`meanMoves=${s.meanMoves.toFixed(0)}  meanMaxTile=${s.meanMaxTile.toFixed(0)}`);
+  lines.push(
+    `${L("games", "games")}=${s.games}  ${L("mean", "mean")}=${s.meanScore.toFixed(0)}  ` +
+      `${L("median", "median")}=${s.medianScore.toFixed(0)}  p90=${s.p90Score.toFixed(0)}  ` +
+      `p99=${s.p99Score.toFixed(0)}  ${L("best", "best")}=${s.bestScore.toFixed(0)}`,
+  );
+  lines.push(`${L("meanMoves", "meanMoves")}=${s.meanMoves.toFixed(0)}  ${L("meanMaxTile", "meanMaxTile")}=${s.meanMaxTile.toFixed(0)}`);
   lines.push(
     `2048=${(s.rates[11] * 100).toFixed(1)}%  4096=${(s.rates[12] * 100).toFixed(1)}%  ` +
       `8192=${(s.rates[13] * 100).toFixed(1)}%  16384=${(s.rates[14] * 100).toFixed(1)}%  ` +
       `32768=${(s.rates[15] * 100).toFixed(1)}%  65536=${(s.rates[16] * 100).toFixed(1)}%`,
   );
   lines.push(
-    `speed: ${s.gamesPerSec.toFixed(2)} games/s, ${s.movesPerSec.toFixed(0)} moves/s, ` +
-      `${s.nodesPerSec.toFixed(0)} nodes/s (avg ${s.avgNodes.toFixed(0)} nodes/move, ${s.avgTimeMs.toFixed(2)} ms/move)`,
+    `${L("speed", "speed")}: ${s.gamesPerSec.toFixed(2)} games/s, ${s.movesPerSec.toFixed(0)} moves/s, ` +
+      `${s.nodesPerSec.toFixed(0)} nodes/s (avg ${s.avgNodes.toFixed(0)} ${L("nodesPerMove", "nodes/move")}, ` +
+      `${s.avgTimeMs.toFixed(2)} ${L("msPerMove", "ms/move")})`,
   );
   return lines.join("\n");
 }

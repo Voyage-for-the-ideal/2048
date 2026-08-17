@@ -1,5 +1,7 @@
 # 2048 AI — Expectimax Auto-Player
 
+**English** · [中文](README.zh-CN.md)
+
 A high-performance, fully client-side auto-playing 2048 with an Expectimax
 solver, precomputed move tables, transposition tables, weight tuning, seeded
 benchmarks, and replay — deployable on GitHub Pages with zero backend.
@@ -14,6 +16,17 @@ Standard 4×4 2048 rules. Play manually with arrow keys, or let the AI play:
 - **Replay Best** — replay the best benchmark game move by move
 - **AI debug panel** — chosen move, search depth, nodes, decision time,
   transposition-table hit rate, and per-direction move evaluations
+
+UI details:
+
+- **Slide animation** — every move (manual / AI / replay) animates smoothly:
+  tiles glide to their target cells, merged tiles pop, swallowed tiles fade
+  out, spawned tiles have a birth animation; the slide duration shrinks
+  adaptively with the play speed
+- **Color themes** — 5 built-in themes (Classic / Dark / Ocean / Sunset /
+  Forest), plus a "Custom colors" panel with 18 per-color pickers (background,
+  board, every tile shade and text color); both the choice and any custom
+  palette persist to localStorage
 
 ## Demo / Deploy
 
