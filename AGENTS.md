@@ -34,8 +34,9 @@ claims are easy to step on.
   (two uint32s — never BigInt/string keys). `src/ai/ai.ts` is the single
   interface used by page, Web Worker, and headless bench.
 - `weights.ts` owns `DEFAULT_WEIGHTS` / `MAX_TILE_WEIGHTS`. Defaults changed
-  2026-08-17 (snake 8→2, maxTile 4→15, score 0.5→2) — do not treat old tunes
-  in the repo as current, and be aware CHANGING these changes every benchmark.
+  2026-08-17 (snake 8→2, maxTile 4→15, score 0.5→2) and 2026-08-18
+  (snake 2→0, from the ablation in README) — do not treat old tunes in the
+  repo as current, and be aware CHANGING these changes every benchmark.
 
 ## Gotchas
 

@@ -75,7 +75,8 @@
 - 浏览器端 1000 局 benchmark 可能较慢（d4 b100 ≈ 5-8s/局），UI 需显示进度
 - moveTables 的 Int16 SMOOTH_ROW 值域：log 差最大 45×8 行，安全
 
-## 完成标准
-- 2048 rate 明显 > 0%（目标 ≥30% 后继续冲 4096/8192）
-- 正式 1000 局 benchmark 完成，README 数据真实
-- GitHub Pages 可访问
+## 完成标准 → 全部达成（2026-08-18）
+- [x] 2048 rate 明显 > 0%（目标 ≥30%）：现为 **82%**（snake=0，50 局
+      seed 200-249），4096 36%，继续冲 8192 是下一阶段目标
+- [x] 正式 benchmark：以 50 局确认替代 1000 局（用户指示），README 数据真实
+- [x] GitHub Pages 可访问：https://voyage-for-the-ideal.github.io/2048/

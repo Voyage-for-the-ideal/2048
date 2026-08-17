@@ -45,6 +45,12 @@ export const WEIGHT_NAMES: (keyof Weights)[] = [
  * dominated every other feature, so the AI refused to merge big tiles and
  * 2048 rate was 0%. With snake cut and maxTile/score raised, the 50-game
  * benchmark goes from 2048=0% to 2048=50% (mean 3291 -> 24763).
+ *
+ * 2026-08-18: snake 2->0 after a 4-arm ablation (15 games/arm, seeds 200-214,
+ * d4 b100 c8): snake=0 beats the baseline on mean (39663 vs 24299), 2048 rate
+ * (66.7% vs 53.3%) and 4096 rate (26.7% vs 6.7%); score=0 was neutral-ish
+ * (2048 66.7%, mean 27657); mono=0 is clearly harmful (2048 33.3%), so it
+ * stays. MAX_TILE_WEIGHTS keeps a small snake term for corner/snake play.
  */
 export const DEFAULT_WEIGHTS: Weights = {
   empty: 27,
@@ -52,7 +58,7 @@ export const DEFAULT_WEIGHTS: Weights = {
   smooth: 47,
   merge: 8,
   corner: 60,
-  snake: 2,
+  snake: 0,
   maxTile: 15,
   score: 2,
 };

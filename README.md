@@ -162,11 +162,27 @@ be filled in from the real runs; results are never fabricated.
 | Expectimax d4 | 60 | 4332 | 0% | 0% | 0% | 0% | 0% |
 | Expectimax d4, uniform cutoff | 50 | 3291 | 0% | 0% | 0% | 0% | 0% |
 | Expectimax d4 tuned weights | 50 | 24763 | 50% | 6% | 0% | 0% | 0% |
+| Expectimax d4 tuned weights, snake=0 | 50 | 43007 | 82% | 36% | 0% | 0% | 0% |
 
 (2026-08-17: the tuned-weights row is `snake 2, maxTile 15, score 2`
 (benchmark `seed 200-249`), which fixed the snake feature structurally
-discouraging big-tile merges. Values in this table are from real runs;
-they are never fabricated.)
+discouraging big-tile merges. 2026-08-18: the ablation (below) showed
+snake=0 wins on every axis, so it became the default (`seed 200-249`,
+mean 43007, 2048=82%, 4096=36% — vs 24763 / 50% / 6% with snake=2).
+Values in this table are from real runs; they are never fabricated.)
+
+### Ablation (2026-08-18)
+
+One weight dropped to zero per arm, 15 games/arm, `seed 200-214`, d4 b100 c8,
+`snake 0, maxTile 15, score 2` is the current default. snake=0 was adopted
+as the new default; mono=0 is clearly harmful (it stays).
+
+| variant | mean | 2048 | 4096 |
+| --- | ---: | ---: | ---: |
+| baseline (snake=2) | 24299 | 53.3% | 6.7% |
+| **snake=0 (new default)** | **39663** | **66.7%** | **26.7%** |
+| score=0 | 27657 | 66.7% | 6.7% |
+| mono=0 | 25918 | 33.3% | 6.7% |
 
 ## How to run
 
