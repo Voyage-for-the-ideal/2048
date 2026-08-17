@@ -81,9 +81,18 @@ header { display: flex; justify-content: space-between; align-items: center; mar
 h1 { font-size: 40px; }
 h1 .sub { font-size: 16px; color: var(--accent); vertical-align: super; }
 .scores { display: flex; gap: 8px; }
-.header-controls { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-.lang, .theme { display: flex; align-items: center; gap: 2px; }
-.lang select, .theme select { border: none; background: transparent; color: var(--text-dark); font-size: 13px; cursor: pointer; padding: 2px; }
+.header-controls { display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
+/* Both dropdowns sit in equal-width pill bars, right-aligned with the header */
+.lang, .theme {
+  display: flex; align-items: center; justify-content: flex-end;
+  background: var(--board-bg);
+  border-radius: 6px;
+  padding: 3px 10px;
+}
+.lang select, .theme select {
+  border: none; background: transparent; color: var(--text-light);
+  font-size: 13px; cursor: pointer; padding: 0;
+}
 .lang select:focus, .theme select:focus { outline: 1px solid var(--cell-empty); }
 .score-box { background: var(--board-bg); color: var(--text-light); border-radius: 6px; padding: 6px 12px; text-align: center; min-width: 80px; }
 .score-box .label { font-size: 11px; opacity: 0.8; }

@@ -151,6 +151,13 @@ function syncCustomPanel(pref: ThemePref): void {
 }
 
 // --- board rendering (tile layer) ---
+// Background grid cells first (they also give the grid its tracks); the
+// absolutely-positioned tile layer floats above them.
+for (let i = 0; i < 16; i++) {
+  const c = document.createElement("div");
+  c.className = "cell";
+  elBoard.appendChild(c);
+}
 const tileLayer = document.createElement("div");
 tileLayer.className = "tile-layer";
 elBoard.appendChild(tileLayer);
