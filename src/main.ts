@@ -349,10 +349,11 @@ function aiKey(): string {
 }
 
 function requestMove(): void {
-  if (replaying) return;
+  if (replaying || pendingMove !== null) return; // one decision in flight
   const config = readConfig();
   const rows = [board[0], board[1], board[2], board[3]];
   const req: WorkerRequest = { type: "choose", requestId: ++requestId, board: rows, score, config };
+  pendingMove = req.requestId;
   worker.postMessage(req);
 }
 
@@ -361,12 +362,23 @@ function applyDecision(move: number): void {
   const old = board.slice();
   const after = new Uint16Array(4);
   const gain = applyMove(board, move, after);
+  const unchanged = gain === 0 && after.every((v, i) => v === old[i]);
   board.set(after);
+  if (unchanged) return; // stale decision against a changed board: nothing moved
   score += gain;
   moves++;
   moveSeq.push(move);
+  // The random tile spawns SYNCHRONOUSLY: game state must be complete before
+  // any animation starts, because a new move may cancel this slide's settle
+  // callback. A discarded settle must never lose (or duplicate) a tile.
+  const born = addRandomTile(board, gameRng);
   if (turbo) {
-    addRandomTile(board, gameRng);
+    if (animTimer !== null) {
+      // Drop a pending settle from a previous animated move; it only renders,
+      // the state it was scheduled to settle is already fully applied.
+      clearTimeout(animTimer);
+      animTimer = null;
+    }
     renderBoard(board);
     updateHud();
     return;
@@ -374,12 +386,11 @@ function applyDecision(move: number): void {
   const speed = parseInt(($("speed") as HTMLInputElement).value, 10);
   const animMs = animMsFor(speed);
   slideAndSettle(old, after, move, animMs, () => {
-    const born = addRandomTile(board, gameRng);
     renderBoard(board, born);
     updateHud();
     // Chain the next auto-play request only after this move settled, so the
-    // random tile is on the board before the next decision is made.
-    if (autoPlaying) {
+    // random tile is rendered before the next decision is made.
+    if (autoPlaying && !turbo) {
       const stepMs = 1000 / Math.max(1, speed);
       setTimeout(tick, Math.max(10, Math.round(stepMs - animMs)));
     }
@@ -425,7 +436,7 @@ function startTurbo(): void {
 }
 
 function turboLoop(): void {
-  if (!autoPlaying || !turbo) return;
+  if (!autoPlaying || !turbo || pendingMove !== null) return;
   if (legalMask(board) === 0) {
     stopAuto();
     return;
@@ -443,6 +454,10 @@ function turboLoop(): void {
 worker.onmessage = (e: MessageEvent) => {
   const msg = e.data;
   if (msg.type === "decision") {
+    // Drop stale decisions (e.g. one requested before New Game): the board
+    // they were computed for is gone, applying them would corrupt the game.
+    if (msg.requestId !== pendingMove) return;
+    pendingMove = null;
     const move = msg.move as number;
     const evals = msg.evals as Array<{ move: number; value: number; gain: number }>;
     const stats = msg.stats as { nodes: number; ttHits: number; ttMisses: number; timeMs: number; depth: number };
@@ -538,6 +553,7 @@ function newGame(): void {
   autoPlaying = false;
   turbo = false;
   replaying = false;
+  pendingMove = null; // any in-flight decision is now stale
   if (animTimer !== null) {
     clearTimeout(animTimer);
     animTimer = null;
@@ -609,8 +625,8 @@ function replayGame(game: { seed: number; score: number; maxTile: number; moves:
     const gain = applyMove(board, d, after);
     board.set(after);
     score += gain;
+    const born = addRandomTile(board, rng);
     slideAndSettle(old, after, d, animMs, () => {
-      const born = addRandomTile(board, rng);
       renderBoard(board, born);
       updateHud();
       setTimeout(next, Math.max(10, Math.round(stepMs - animMs)));
@@ -636,8 +652,8 @@ document.addEventListener("keydown", (e) => {
   score += gain;
   moves++;
   moveSeq.push(d);
+  const born = addRandomTile(board, gameRng);
   slideAndSettle(old, after, d, 120, () => {
-    const born = addRandomTile(board, gameRng);
     renderBoard(board, born);
     updateHud();
   });
