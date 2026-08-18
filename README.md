@@ -108,13 +108,6 @@ cell), not an adversarial MIN node.
 - **Chance-node cutoff** (optional, off = exact): expand only the top-K
   empty cells with renormalized probabilities to trade accuracy for depth.
 
-### Objectives
-
-- `MAX_SCORE` — maximize expected final score (default weights)
-- `MAX_TILE` — maximize the chance of reaching the target tile (weights
-  biased toward corner/snake/max-tile protection; the UI lets you pick the
-  target 2048…65536)
-
 ## Evaluation function
 
 ```

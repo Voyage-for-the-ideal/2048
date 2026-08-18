@@ -82,12 +82,7 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
       results.push({ score: game.score, maxTileLog: game.maxTileLog, moves: game.moves });
       totalNodes += nodes;
       const gameMaxTile = Math.pow(2, game.maxTileLog);
-      const betterBest =
-        !bestGame ||
-        (cfg.objective === "MAX_TILE"
-          ? gameMaxTile > bestGame.maxTile ||
-            (gameMaxTile === bestGame.maxTile && game.score > bestGame.score)
-          : game.score > bestGame.score);
+      const betterBest = !bestGame || game.score > bestGame.score;
       if (betterBest) {
         bestGame = {
           seed: game.seed,

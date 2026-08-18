@@ -52,11 +52,6 @@ export const WEIGHT_NAMES: (keyof Weights)[] = [
  * (2048 66.7%, mean 27657); mono=0 is clearly harmful (2048 33.3%), so it
  * stays.
  *
- * 2026-08-18 MAX_TILE first-pass fix: reuse the proven board-structure
- * profile, remove snake entirely (it discourages large merges), set score=0
- * so the transposition table remains usable, and raise maxTile/corner emphasis.
- * These MAX_TILE values are intentionally conservative and should be tuned
- * separately against max-tile reach rates in a later pass.
  */
 export const DEFAULT_WEIGHTS: Weights = {
   empty: 27,
@@ -67,18 +62,6 @@ export const DEFAULT_WEIGHTS: Weights = {
   snake: 0,
   maxTile: 15,
   score: 2,
-};
-
-/** Weights biased toward reaching a large target tile (MAX_TILE objective). */
-export const MAX_TILE_WEIGHTS: Weights = {
-  empty: 27,
-  mono: 47,
-  smooth: 47,
-  merge: 8,
-  corner: 70,
-  snake: 0,
-  maxTile: 30,
-  score: 0,
 };
 
 export function weightsToArray(w: Weights): number[] {

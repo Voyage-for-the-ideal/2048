@@ -12,7 +12,6 @@ const { games, maxDepth, budgetMs, cutoff, weights } = workerData as {
 };
 
 const ai = new AI({
-  objective: "MAX_SCORE",
   maxDepth,
   budgetMs,
   chanceCutoff: cutoff,

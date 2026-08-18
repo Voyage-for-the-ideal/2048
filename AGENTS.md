@@ -13,7 +13,7 @@ claims are easy to step on.
 - `npm run build` — prod build to `dist/`. Uses `base: "/2048/"` for GitHub
   Pages, so `dist/` must be previewed with `npm run preview` (opening the
   files directly breaks asset paths).
-- `npm run benchmark -- <games> <seedStart> [--maxDepth N] [--budgetMs N] [--cutoff K] [--noTT] [--objective MAX_SCORE|MAX_TILE] [--weights <file-or-inline-json>] [--json out.json] [--keepBest]`
+- `npm run benchmark -- <games> <seedStart> [--maxDepth N] [--budgetMs N] [--cutoff K] [--noTT] [--weights <file-or-inline-json>] [--json out.json] [--keepBest]`
   — seeded headless benchmark. Positional `<games> <seedStart>` also have named
   aliases `--games`/`--seedStart`.
 - `npm run tune -- <games> <generations> [--maxDepth N] [--budgetMs N] [--cutoff K] [--workers W]`
@@ -33,7 +33,7 @@ claims are easy to step on.
   table-driven evaluator, transposition table keyed by exact 64-bit board
   (two uint32s — never BigInt/string keys). `src/ai/ai.ts` is the single
   interface used by page, Web Worker, and headless bench.
-- `weights.ts` owns `DEFAULT_WEIGHTS` / `MAX_TILE_WEIGHTS`. Defaults changed
+- `weights.ts` owns `DEFAULT_WEIGHTS`. Defaults changed
   2026-08-17 (snake 8→2, maxTile 4→15, score 0.5→2) and 2026-08-18
   (snake 2→0, from the ablation in README) — do not treat old tunes in the
   repo as current, and be aware CHANGING these changes every benchmark.

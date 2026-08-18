@@ -25,7 +25,6 @@ const cutoff = parseInt(arg("--cutoff") ?? "8", 10);
 const nodeBudget = parseInt(arg("--nodeBudget") ?? "0", 10);
 
 const ai = new AI({
-  objective: "MAX_SCORE",
   maxDepth,
   budgetMs,
   chanceCutoff: cutoff,

@@ -339,7 +339,6 @@ function readConfig(): Partial<AIOptions> {
     budgetMs: parseInt(($("budget") as HTMLSelectElement).value, 10),
     chanceCutoff: parseInt(($("cutoff") as HTMLSelectElement).value, 10),
     useTT: true,
-    objective: ($("objective") as HTMLSelectElement).value as AIOptions["objective"],
     persistentTT: true,
   };
 }

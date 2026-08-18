@@ -5,13 +5,10 @@
  */
 import type { Board } from "../game/board";
 import { Expectimax, type AIConfig, type MoveEval, type SearchStats } from "./expectimax";
-import { DEFAULT_WEIGHTS, MAX_TILE_WEIGHTS, parseWeights, type Weights } from "./weights";
+import { DEFAULT_WEIGHTS, parseWeights, type Weights } from "./weights";
 import { TranspositionTable } from "./transposition";
 
-export type Objective = "MAX_SCORE" | "MAX_TILE";
-
 export interface AIOptions {
-  objective: Objective;
   maxDepth: number;
   budgetMs: number;
   nodeBudget: number;
@@ -38,9 +35,8 @@ export class AI {
     const weights: Weights =
       typeof options.weights === "string"
         ? parseWeights(options.weights)
-        : options.weights ?? (options.objective === "MAX_TILE" ? MAX_TILE_WEIGHTS : DEFAULT_WEIGHTS);
+        : options.weights ?? DEFAULT_WEIGHTS;
     this.options = {
-      objective: options.objective ?? "MAX_SCORE",
       maxDepth: options.maxDepth ?? 4,
       budgetMs: options.budgetMs ?? 40,
       nodeBudget: options.nodeBudget ?? 200_000,
@@ -78,4 +74,4 @@ export class AI {
 }
 
 /** Re-exported for convenience. */
-export { DEFAULT_WEIGHTS, MAX_TILE_WEIGHTS, type Weights };
+export { DEFAULT_WEIGHTS, type Weights };
