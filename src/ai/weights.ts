@@ -50,7 +50,13 @@ export const WEIGHT_NAMES: (keyof Weights)[] = [
  * d4 b100 c8): snake=0 beats the baseline on mean (39663 vs 24299), 2048 rate
  * (66.7% vs 53.3%) and 4096 rate (26.7% vs 6.7%); score=0 was neutral-ish
  * (2048 66.7%, mean 27657); mono=0 is clearly harmful (2048 33.3%), so it
- * stays. MAX_TILE_WEIGHTS keeps a small snake term for corner/snake play.
+ * stays.
+ *
+ * 2026-08-18 MAX_TILE first-pass fix: reuse the proven board-structure
+ * profile, remove snake entirely (it discourages large merges), set score=0
+ * so the transposition table remains usable, and raise maxTile/corner emphasis.
+ * These MAX_TILE values are intentionally conservative and should be tuned
+ * separately against max-tile reach rates in a later pass.
  */
 export const DEFAULT_WEIGHTS: Weights = {
   empty: 27,
@@ -65,14 +71,14 @@ export const DEFAULT_WEIGHTS: Weights = {
 
 /** Weights biased toward reaching a large target tile (MAX_TILE objective). */
 export const MAX_TILE_WEIGHTS: Weights = {
-  empty: 20,
-  mono: 8,
-  smooth: 6,
-  merge: 6,
-  corner: 60,
-  snake: 4,
-  maxTile: 6,
-  score: 0.3,
+  empty: 27,
+  mono: 47,
+  smooth: 47,
+  merge: 8,
+  corner: 70,
+  snake: 0,
+  maxTile: 30,
+  score: 0,
 };
 
 export function weightsToArray(w: Weights): number[] {

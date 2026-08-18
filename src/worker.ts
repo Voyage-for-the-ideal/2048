@@ -81,21 +81,30 @@ self.onmessage = (e: MessageEvent<WorkerRequest>) => {
       const { game, nodes } = playGameWithStatsCapture(msg.seedStart + i, engine);
       results.push({ score: game.score, maxTileLog: game.maxTileLog, moves: game.moves });
       totalNodes += nodes;
-      if (!bestGame || game.score > bestGame.score) {
+      const gameMaxTile = Math.pow(2, game.maxTileLog);
+      const betterBest =
+        !bestGame ||
+        (cfg.objective === "MAX_TILE"
+          ? gameMaxTile > bestGame.maxTile ||
+            (gameMaxTile === bestGame.maxTile && game.score > bestGame.score)
+          : game.score > bestGame.score);
+      if (betterBest) {
         bestGame = {
           seed: game.seed,
           score: game.score,
-          maxTile: Math.pow(2, game.maxTileLog),
+          maxTile: gameMaxTile,
           moves: game.moves,
           moveSeq: game.moveSeq,
         };
       }
       done++;
+      const currentBest = bestGame!;
       (self as unknown as Worker).postMessage({
         type: "benchmarkProgress",
         done,
         total: msg.games,
-        bestScore: bestGame.score,
+        bestScore: currentBest.score,
+        bestMaxTile: currentBest.maxTile,
       });
     }
     const summary = summarize(results, { elapsedMs: performance.now() - start, totalNodes });
