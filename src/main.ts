@@ -164,7 +164,7 @@ elBoard.appendChild(tileLayer);
 const tiles: HTMLElement[] = [];
 for (let i = 0; i < 16; i++) {
   const t = document.createElement("div");
-  t.className = "tile no-anim";
+  t.className = "tile no-anim inactive";
   const s = document.createElement("span");
   t.appendChild(s);
   tileLayer.appendChild(t);
@@ -201,7 +201,7 @@ function renderBoard(b: Uint16Array, bornIdx = -1): void {
   for (; k < 16; k++) {
     tiles[k].style.opacity = "";
     tiles[k].querySelector("span")!.textContent = "";
-    tiles[k].className = "tile no-anim";
+    tiles[k].className = "tile no-anim inactive";
   }
 }
 
@@ -275,7 +275,7 @@ function slideAndSettle(oldB: Uint16Array, afterB: Uint16Array, dir: number, ani
   for (; k < 16; k++) {
     tiles[k].style.opacity = "";
     tiles[k].querySelector("span")!.textContent = "";
-    tiles[k].className = "tile no-anim";
+    tiles[k].className = "tile no-anim inactive";
   }
   void tileLayer.offsetWidth; // force reflow so the new positions animate
 

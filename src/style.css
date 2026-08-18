@@ -130,6 +130,8 @@ h1 .sub { font-size: 16px; color: var(--accent); vertical-align: super; }
   transition: transform var(--anim-ms, 110ms) ease-in-out;
   z-index: 2;
 }
+/* Tile elements are pooled; unused entries must not paint at stale positions. */
+.tile.inactive { display: none; }
 .tile.no-anim { transition: none; }
 .tile.fade { opacity: 0; transition: opacity 90ms ease; }
 .tile span {
